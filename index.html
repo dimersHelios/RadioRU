@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RadioRU">
+<title>RadioRU — русскоязычное радио</title>
+<style>
+:root{color-scheme:dark;--bg:#0f1115;--card:#191c22;--card2:#20242b;--line:#2c313a;--muted:#9aa3b0;--red:#ff453a;--green:#30d158;--blue:#0a84ff;--yellow:#ffd60a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#fff;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 calc(105px + env(safe-area-inset-bottom))}
+button,input{font:inherit}header{position:sticky;top:0;z-index:10;padding:14px 14px 11px;background:rgba(15,17,21,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.topline{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}h1{margin:0;font-size:27px;line-height:1.05}.subtitle{color:var(--muted);font-size:12px;margin-top:5px}.syncbtn{border:0;background:#272c34;color:#fff;border-radius:12px;padding:9px 11px;font-size:18px}
+#status{margin:10px 0 9px;font-size:12px;color:var(--muted);min-height:16px}.okstatus{color:var(--green)!important}.badstatus{color:#ff9f0a!important}
+#q{width:100%;border:1px solid var(--line);background:#20242b;color:#fff;border-radius:12px;padding:12px 13px;font-size:16px;outline:none}#q:focus{border-color:#2468b7;box-shadow:0 0 0 3px rgba(10,132,255,.25)}
+.tabs{display:flex;gap:7px;overflow:auto;padding:10px 0 1px;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{white-space:nowrap;border:1px solid var(--line);background:#1b1f26;color:#d9dee6;padding:7px 11px;border-radius:999px;font-size:13px}.tab.on{background:#fff;color:#111;border-color:#fff}
+.banner{display:none;margin:12px 13px 0;padding:10px 12px;border-radius:12px;background:#30251d;color:#ffd6ad;font-size:13px;line-height:1.4}
+.country{margin:20px 13px 0}.countryHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 9px}.countryName{font-size:22px;font-weight:850}.count{font-size:12px;color:var(--muted);font-weight:600}
+.place{margin:12px 0 0}.placeHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:0 4px 7px}.placeName{font-size:16px;font-weight:800}.placeMeta{text-align:right;min-width:145px}.placeTime{font-size:14px;font-weight:750;font-variant-numeric:tabular-nums}.placeWeather{font-size:11px;color:var(--muted);margin-top:2px}
+.row{display:flex;align-items:center;gap:10px;background:var(--card);padding:10px;border-bottom:1px solid var(--line)}.row.first{border-radius:14px 14px 0 0}.row.last{border-bottom:0;border-radius:0 0 14px 14px}.row.only{border-radius:14px;border-bottom:0}
+.logo{width:48px;height:48px;flex:0 0 48px;border-radius:12px;background:#fff;overflow:hidden;display:grid;place-items:center;color:#333;font-weight:900;font-size:11px;text-align:center}.logo img{width:100%;height:100%;object-fit:contain;padding:4px}.play{width:40px;height:40px;flex:0 0 40px;border:0;border-radius:50%;background:#363c47;color:#fff;font-size:15px}.active .play{background:var(--red)}
+.meta{min-width:0;flex:1}.name{font-weight:780;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.loc{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}.tech{font-size:10px;color:#737d8b;margin-top:3px}.fav{border:0;background:transparent;color:#858d99;font-size:24px;padding:6px}.fav.on{color:var(--yellow)}
+.empty{text-align:center;color:var(--muted);padding:70px 24px;line-height:1.45}.smallnote{margin:18px 16px;color:#727b88;font-size:11px;line-height:1.45}
+#player{position:fixed;left:0;right:0;bottom:0;display:none;align-items:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(27,30,36,.97);backdrop-filter:blur(20px);border-top:1px solid var(--line);z-index:20}.pt{flex:1;min-width:0}.pn{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pc{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}.pb{width:44px;height:44px;border:0;border-radius:50%;background:#353a44;color:#fff;font-size:18px}.spin{display:inline-block;animation:spin .85s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="topline">
+    <div><h1>RadioRU</h1><div class="subtitle">Русскоязычные станции России и мира</div></div>
+    <button id="syncBtn" class="syncbtn" aria-label="Обновить">↻</button>
+  </div>
+  <div id="status">Подготовка…</div>
+  <input id="q" placeholder="Станция, страна или город / регион">
+  <div class="tabs">
+    <button class="tab on" data-mode="all">Все</button>
+    <button class="tab" data-mode="ru">Россия</button>
+    <button class="tab" data-mode="world">Другие страны</button>
+    <button class="tab" data-mode="fav">★ Избранное</button>
+  </div>
+</header>
+<div id="banner" class="banner"></div>
+<main id="list"></main>
+<div class="smallnote">Каталог синхронизируется при открытии и повторно во время работы. В него попадают только русскоязычные станции, которые каталог Radio Browser в последней проверке считает рабочими и которые имеют HTTPS-поток. Если поток всё же перестал отвечать, RadioRU скрывает его до следующего запуска. Для части станций каталог указывает не отдельный город, а регион — тогда показывается «город / регион», без выдумывания города.</div>
+<div id="player"><div class="pt"><div id="pn" class="pn"></div><div id="pc" class="pc"></div></div><button id="toggle" class="pb">❚❚</button><button id="stop" class="pb">×</button></div>
+<audio id="audio" playsinline></audio>
+<script>
+(function(){
+"use strict";
+var CACHE_KEY="radioru-stations-v4";
+var FAV_KEY="radioru-favs-v4";
+var MAX_STATIONS=250;
+var RESYNC_MS=10*60*1000;
+var BOOTSTRAP=["https://de1.api.radio-browser.info","https://nl1.api.radio-browser.info"];
+var stations=[];
+var bad=new Set();
+var fav=new Set(JSON.parse(localStorage.getItem(FAV_KEY)||"[]"));
+var mode="all";
+var current=null;
+var apiBase="";
+var syncing=false;
+var lastSync=0;
+var playTimer=null;
+var weatherCache=new Map();
+
+var audio=document.getElementById("audio");
+var list=document.getElementById("list");
+var statusEl=document.getElementById("status");
+var banner=document.getElementById("banner");
+var syncBtn=document.getElementById("syncBtn");
+var q=document.getElementById("q");
+var player=document.getElementById("player");
+var pn=document.getElementById("pn");
+var pc=document.getElementById("pc");
+var toggle=document.getElementById("toggle");
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function flag(cc){if(!cc||cc.length!==2)return"🌐";return String.fromCodePoint.apply(null,cc.toUpperCase().split("").map(function(ch){return 127397+ch.charCodeAt(0);}));}
+var dn=(typeof Intl.DisplayNames!=="undefined")?new Intl.DisplayNames(["ru"],{type:"region"}):null;
+function countryName(s){try{return dn&&s.countrycode?dn.of(s.countrycode.toUpperCase()):(s.country||s.countrycode||"Страна не указана");}catch(e){return s.country||s.countrycode||"Страна не указана";}}
+function placeName(s){var p=(s.state||"").trim();return p||"Город / регион не указан";}
+function logoUrl(s){
+  var f=(s.favicon||"").trim();if(/^https:\/\//i.test(f))return f;
+  try{var h=new URL(s.homepage||"");return "https://www.google.com/s2/favicons?sz=128&domain="+encodeURIComponent(h.hostname);}catch(e){return "";}
+}
+function supported(s){
+  var u=(s.url_resolved||s.url||"").trim();
+  var codec=String(s.codec||"").toUpperCase();
+  var ageOk=true;
+  if(s.lastchecktime_iso8601){var t=Date.parse(s.lastchecktime_iso8601);if(isFinite(t))ageOk=(Date.now()-t)<7*86400000;}
+  var codecOk=Number(s.hls)===1||/MP3|AAC|M4A/.test(codec)||codec==="";
+  return Number(s.lastcheckok)===1 && /^https:\/\//i.test(u) && !Number(s.ssl_error) && ageOk && codecOk;
+}
+function normalize(raw){
+  var seen=new Set(),out=[];
+  raw.forEach(function(s){
+    if(!supported(s))return;
+    var url=(s.url_resolved||s.url||"").trim();
+    var key=(s.stationuuid||"")+"|"+url;
+    if(seen.has(key))return;seen.add(key);
+    out.push({
+      id:s.stationuuid||key,name:(s.name||"Без названия").trim(),url:url,homepage:s.homepage||"",favicon:s.favicon||"",
+      country:s.country||"",countrycode:(s.countrycode||"").toUpperCase(),state:s.state||"",language:s.language||"",codec:s.codec||"",bitrate:Number(s.bitrate)||0,hls:Number(s.hls)||0,
+      lat:(s.geo_lat==null?null:Number(s.geo_lat)),lon:(s.geo_long==null?null:Number(s.geo_long)),clickcount:Number(s.clickcount)||0,lastcheck:s.lastchecktime_iso8601||""
+    });
+  });
+  out.sort(function(a,b){return b.clickcount-a.clickcount;});
+  return out.slice(0,MAX_STATIONS);
+}
+function setStatus(text,kind){statusEl.textContent=text;statusEl.className=kind||"";}
+function showBanner(text){banner.textContent=text;banner.style.display="block";}
+function hideBanner(){banner.style.display="none";}
+async function fetchJSON(url,timeout){
+  var ctrl=new AbortController();var t=setTimeout(function(){ctrl.abort();},timeout||9000);
+  try{var r=await fetch(url,{cache:"no-store",signal:ctrl.signal});if(!r.ok)throw new Error("HTTP "+r.status);return await r.json();}finally{clearTimeout(t);}
+}
+async function discoverServers(){
+  var candidates=BOOTSTRAP.slice();
+  for(var i=0;i<BOOTSTRAP.length;i++){
+    try{
+      var rows=await fetchJSON(BOOTSTRAP[i]+"/json/servers",6000);
+      rows.forEach(function(x){if(x&&x.name)candidates.push("https://"+x.name);});
+      break;
+    }catch(e){}
+  }
+  return Array.from(new Set(candidates));
+}
+async function loadRemote(){
+  var servers=await discoverServers();
+  var path="/json/stations/search?language=russian&hidebroken=true&is_https=true&order=clickcount&reverse=true&limit=500";
+  var lastErr=null;
+  for(var i=0;i<servers.length;i++){
+    try{var data=await fetchJSON(servers[i]+path,11000);apiBase=servers[i];return data;}catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error("Нет доступного сервера каталога");
+}
+function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({ts:Date.now(),stations:stations}));}catch(e){}}
+function loadCache(){
+  try{var c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c&&Array.isArray(c.stations)&&c.stations.length){stations=c.stations;lastSync=c.ts||0;return true;}}catch(e){}return false;
+}
+async function syncStations(force){
+  if(syncing)return;if(!force&&Date.now()-lastSync<60000)return;
+  syncing=true;syncBtn.innerHTML='<span class="spin">↻</span>';setStatus("Синхронизация списка рабочих станций…","");
+  try{
+    var raw=await loadRemote();
+    var next=normalize(raw);
+    if(!next.length)throw new Error("Каталог вернул пустой список");
+    stations=next;lastSync=Date.now();bad.clear();saveCache();hideBanner();
+    var countries=new Set(stations.map(function(s){return s.countrycode||s.country;})).size;
+    setStatus("✓ Синхронизировано сейчас · "+stations.length+" рабочих станций · "+countries+" стран","okstatus");
+    render();
+  }catch(e){
+    if(!stations.length)loadCache();
+    if(stations.length){setStatus("Каталог сейчас недоступен · показан последний сохранённый список","badstatus");showBanner("Не удалось обновить каталог. RadioRU использует последний успешный список и попробует снова автоматически.");render();}
+    else{setStatus("Не удалось получить список станций","badstatus");showBanner("Нет связи с каталогом радиостанций. Проверь интернет и нажми ↻.");render();}
+  }finally{syncing=false;syncBtn.textContent="↻";}
+}
+function filtered(){
+  var term=q.value.trim().toLowerCase();
+  return stations.filter(function(s){
+    if(bad.has(s.id))return false;
+    if(mode==="ru"&&s.countrycode!=="RU")return false;
+    if(mode==="world"&&s.countrycode==="RU")return false;
+    if(mode==="fav"&&!fav.has(s.id))return false;
+    if(!term)return true;
+    var hay=[s.name,countryName(s),s.countrycode,placeName(s),s.state,s.language].join(" ").toLowerCase();
+    return hay.indexOf(term)!==-1;
+  });
+}
+function groupRows(rows){
+  var countries=new Map();
+  rows.forEach(function(s){
+    var ck=s.countrycode||s.country||"ZZ";
+    if(!countries.has(ck))countries.set(ck,{name:countryName(s),code:s.countrycode,places:new Map(),count:0});
+    var c=countries.get(ck);c.count++;
+    var pk=placeName(s);
+    if(!c.places.has(pk))c.places.set(pk,[]);
+    c.places.get(pk).push(s);
+  });
+  return Array.from(countries.values()).sort(function(a,b){if(a.code==="RU")return-1;if(b.code==="RU")return 1;return a.name.localeCompare(b.name,"ru");});
+}
+function render(){
+  var rows=filtered();list.innerHTML="";
+  if(!rows.length){list.innerHTML='<div class="empty">Ничего не найдено.<br>Измени поиск или фильтр.</div>';return;}
+  groupRows(rows).forEach(function(c){
+    var sec=document.createElement("section");sec.className="country";
+    var head=document.createElement("div");head.className="countryHead";head.innerHTML='<div class="countryName">'+flag(c.code)+" "+esc(c.name)+'</div><div class="count">'+c.count+' станц.</div>';sec.appendChild(head);
+    Array.from(c.places.keys()).sort(function(a,b){return a.localeCompare(b,"ru");}).forEach(function(place){
+      var ss=c.places.get(place).slice().sort(function(a,b){return b.clickcount-a.clickcount||a.name.localeCompare(b.name,"ru");});
+      var p=document.createElement("div");p.className="place";
+      var ph=document.createElement("div");ph.className="placeHead";
+      var rep=ss.find(function(x){return isFinite(x.lat)&&isFinite(x.lon)&&x.lat!==null&&x.lon!==null;})||ss[0];
+      ph.innerHTML='<div class="placeName">'+esc(place)+'</div><div class="placeMeta"><div class="placeTime">время…</div><div class="placeWeather">погода…</div></div>';
+      p.appendChild(ph);
+      ph.dataset.lat=rep.lat==null?"":String(rep.lat);ph.dataset.lon=rep.lon==null?"":String(rep.lon);ph.dataset.place=place;ph.dataset.cc=c.code||"";
+      ss.forEach(function(s,idx){p.appendChild(stationRow(s,idx,ss.length,c.name,place));});
+      sec.appendChild(p);
+      observePlace(ph);
+    });
+    list.appendChild(sec);
+  });
+}
+function stationRow(s,idx,total,cname,place){
+  var r=document.createElement("div");var cls="row"+(total===1?" only":idx===0?" first":idx===total-1?" last":"");if(current&&current.id===s.id)cls+=" active";r.className=cls;
+  var lb=document.createElement("div");lb.className="logo";var lu=logoUrl(s);
+  if(lu){var im=document.createElement("img");im.src=lu;im.alt=s.name;im.referrerPolicy="no-referrer";im.onerror=function(){lb.textContent=(s.name||"FM").slice(0,5).toUpperCase();};lb.appendChild(im);}else lb.textContent=(s.name||"FM").slice(0,5).toUpperCase();
+  var pb=document.createElement("button");pb.className="play";pb.textContent=(current&&current.id===s.id&&!audio.paused)?"❚❚":"▶";pb.onclick=function(){play(s,cname,place);};
+  var m=document.createElement("div");m.className="meta";m.innerHTML='<div class="name">'+esc(s.name)+'</div><div class="loc">'+flag(s.countrycode)+' '+esc(cname)+' · '+esc(place)+'</div><div class="tech">'+esc(s.codec||"аудио")+(s.bitrate?" · "+s.bitrate+" kbps":"")+'</div>';
+  var fb=document.createElement("button");fb.className="fav "+(fav.has(s.id)?"on":"");fb.textContent=fav.has(s.id)?"★":"☆";fb.onclick=function(){fav.has(s.id)?fav.delete(s.id):fav.add(s.id);localStorage.setItem(FAV_KEY,JSON.stringify(Array.from(fav)));render();};
+  r.appendChild(lb);r.appendChild(pb);r.appendChild(m);r.appendChild(fb);return r;
+}
+function markBad(s){bad.add(s.id);if(current&&current.id===s.id){audio.pause();audio.removeAttribute("src");audio.load();current=null;player.style.display="none";}showBanner("Поток «"+s.name+"» сейчас не отвечает. Станция скрыта до следующей синхронизации.");render();}
+function countClick(s){if(!apiBase||!s.id)return;fetch(apiBase+"/json/url/"+encodeURIComponent(s.id),{cache:"no-store"}).catch(function(){});}
+function play(s,cname,place){
+  if(current&&current.id===s.id){if(audio.paused)audio.play().catch(function(){markBad(s);});else audio.pause();return;}
+  clearTimeout(playTimer);current=s;audio.src=s.url;player.style.display="flex";pn.textContent=s.name;pc.textContent=cname+" · "+place+" · подключение…";render();countClick(s);
+  playTimer=setTimeout(function(){if(current&&current.id===s.id&&audio.readyState<2)markBad(s);},10000);
+  audio.play().catch(function(){markBad(s);});
+}
+audio.onplaying=function(){clearTimeout(playTimer);toggle.textContent="❚❚";if(current)pc.textContent=countryName(current)+" · "+placeName(current)+" · играет";render();};
+audio.onpause=function(){toggle.textContent="▶";render();};audio.onerror=function(){if(current)markBad(current);};audio.onstalled=function(){if(current)pc.textContent=countryName(current)+" · "+placeName(current)+" · буферизация…";};
+toggle.onclick=function(){if(audio.paused)audio.play().catch(function(){if(current)markBad(current);});else audio.pause();};
+document.getElementById("stop").onclick=function(){clearTimeout(playTimer);audio.pause();audio.removeAttribute("src");audio.load();current=null;player.style.display="none";render();};
+q.oninput=render;syncBtn.onclick=function(){syncStations(true);};
+document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});b.classList.add("on");mode=b.dataset.mode;render();};});
+
+var placeObserver=("IntersectionObserver" in window)?new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){loadPlaceInfo(e.target);placeObserver.unobserve(e.target);}});},{rootMargin:"250px"}):null;
+function observePlace(el){if(placeObserver)placeObserver.observe(el);else loadPlaceInfo(el);}
+function weatherIcon(c){if(c===0)return"☀️";if(c<=2)return"🌤️";if(c===3)return"☁️";if(c===45||c===48)return"🌫️";if((c>=51&&c<=67)||(c>=80&&c<=82))return"🌧️";if((c>=71&&c<=77)||(c>=85&&c<=86))return"🌨️";if(c>=95)return"⛈️";return"☁️";}
+async function geocode(place,cc){
+  if(!place||place.indexOf("не указан")!==-1)return null;
+  try{var u="https://geocoding-api.open-meteo.com/v1/search?name="+encodeURIComponent(place)+"&count=6&language=ru&format=json";var j=await fetchJSON(u,7000);var rr=(j.results||[]);var hit=rr.find(function(x){return !cc||String(x.country_code||"").toUpperCase()===cc;})||rr[0];return hit?{lat:hit.latitude,lon:hit.longitude}:null;}catch(e){return null;}
+}
+async function loadPlaceInfo(el){
+  var lat=parseFloat(el.dataset.lat),lon=parseFloat(el.dataset.lon),place=el.dataset.place,cc=el.dataset.cc;
+  if(!isFinite(lat)||!isFinite(lon)){var g=await geocode(place,cc);if(g){lat=g.lat;lon=g.lon;}}
+  var timeEl=el.querySelector(".placeTime"),wEl=el.querySelector(".placeWeather");
+  if(!isFinite(lat)||!isFinite(lon)){timeEl.textContent="время —";wEl.textContent="погода —";return;}
+  var key=lat.toFixed(2)+","+lon.toFixed(2);var cached=weatherCache.get(key);if(cached&&Date.now()-cached.ts<15*60*1000){applyWeather(cached,timeEl,wEl);return;}
+  try{
+    var params=new URLSearchParams({latitude:String(lat),longitude:String(lon),current:"temperature_2m,weather_code",daily:"temperature_2m_max,temperature_2m_min",timezone:"auto",forecast_days:"1"});
+    var j=await fetchJSON("https://api.open-meteo.com/v1/forecast?"+params.toString(),8000);
+    var d={ts:Date.now(),tz:j.timezone,now:j.current.temperature_2m,code:j.current.weather_code,min:j.daily.temperature_2m_min[0],max:j.daily.temperature_2m_max[0]};weatherCache.set(key,d);applyWeather(d,timeEl,wEl);
+  }catch(e){timeEl.textContent="время —";wEl.textContent="погода —";}
+}
+function applyWeather(d,timeEl,wEl){
+  try{timeEl.textContent=new Intl.DateTimeFormat("ru-RU",{timeZone:d.tz,hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());}catch(e){timeEl.textContent="время —";}
+  wEl.textContent=weatherIcon(Number(d.code))+" "+Math.round(d.now)+"° · "+Math.round(d.min)+"…"+Math.round(d.max)+"°";
+}
+function init(){
+  if(loadCache()){setStatus("Загружен сохранённый список · обновляю…","");render();}
+  syncStations(true);
+  window.addEventListener("pageshow",function(){if(Date.now()-lastSync>60000)syncStations(true);});
+  document.addEventListener("visibilitychange",function(){if(!document.hidden&&Date.now()-lastSync>5*60*1000)syncStations(true);});
+  setInterval(function(){syncStations(true);},RESYNC_MS);
+}
+init();
+})();
+</script>
+</body>
+</html>
