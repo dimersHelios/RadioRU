@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="RadioRU">
+<title>RadioRU</title>
+<style>
+:root{color-scheme:dark;--bg:#0f1115;--card:#1b1e24;--line:#2a2e36;--muted:#9da5b2;--red:#ff453a;--green:#30d158}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#fff;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 calc(96px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:3;padding:14px 15px 11px;background:rgba(15,17,21,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+h1{margin:0 0 4px;font-size:28px}.updated{font-size:12px;color:var(--muted);margin-bottom:10px}
+input{width:100%;border:1px solid var(--line);background:#20242b;color:#fff;border-radius:12px;padding:12px 13px;font-size:16px}
+.notice{display:none;margin:12px 13px 0;padding:10px 12px;border-radius:12px;background:#30251d;color:#ffd6ad;font-size:13px}
+.city{margin:20px 13px 0}.ct{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin:0 3px 9px}
+.cn{font-size:21px;font-weight:800}.cr{text-align:right}.time{font-weight:750;font-variant-numeric:tabular-nums}.weather{font-size:12px;color:var(--muted);margin-top:3px}
+.row{display:flex;align-items:center;gap:10px;background:var(--card);padding:10px;border-bottom:1px solid var(--line)}
+.row.first{border-radius:14px 14px 0 0}.row.last{border-bottom:0;border-radius:0 0 14px 14px}.row.only{border-radius:14px;border-bottom:0}
+.logo{width:46px;height:46px;flex:0 0 46px;border-radius:11px;background:#fff;overflow:hidden;display:grid;place-items:center}
+.logo img{width:100%;height:100%;object-fit:contain;padding:5px}.fallback{color:#333;font-size:10px;font-weight:800}
+.play{width:39px;height:39px;border:0;border-radius:50%;background:#343945;color:#fff;font-size:15px}.active .play{background:var(--red)}
+.meta{min-width:0;flex:1}.name{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sub{font-size:13px;color:var(--muted);margin-top:3px}
+.ok{font-size:10px;color:var(--green);margin-top:4px}.fav{border:0;background:transparent;color:#8b929f;font-size:24px}.fav.on{color:#ffd60a}
+#player{position:fixed;left:0;right:0;bottom:0;display:none;align-items:center;gap:10px;padding:10px 13px calc(10px + env(safe-area-inset-bottom));background:rgba(27,30,36,.97);backdrop-filter:blur(20px);border-top:1px solid var(--line);z-index:5}
+.pt{flex:1;min-width:0}.pn{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pc{font-size:13px;color:var(--muted);margin-top:2px}
+.pb{width:44px;height:44px;border:0;border-radius:50%;background:#353a44;color:#fff;font-size:18px}
+.note{padding:18px 16px;color:var(--muted);font-size:12px;line-height:1.45}
+.retry{margin:8px 13px 0;border:1px solid var(--line);background:#20242b;color:#fff;border-radius:10px;padding:8px 11px;display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Радио России</h1>
+  <div class="updated">Список потоков обновлён 18.09.2026 · только HTTPS</div>
+  <input id="q" placeholder="Станция или город">
+</header>
+
+<div id="notice" class="notice"></div>
+<button id="retry" class="retry">Вернуть скрытые станции</button>
+<main id="list"></main>
+
+<div class="note">
+В приложении нет рекламы и аналитики. Реклама, которую сама радиостанция вставляет в прямой эфир, может звучать.
+Если поток перестал отвечать, станция автоматически скрывается до обновления страницы.
+</div>
+
+<div id="player">
+  <div class="pt"><div class="pn" id="pn"></div><div class="pc" id="pc"></div></div>
+  <button class="pb" id="toggle">❚❚</button>
+  <button class="pb" id="stop">×</button>
+</div>
+<audio id="audio" playsinline></audio>
+
+<script>
+const cities = {
+  "Москва": {lat:55.7558, lon:37.6173, tz:"Europe/Moscow"},
+  "Санкт-Петербург": {lat:59.9343, lon:30.3351, tz:"Europe/Moscow"},
+  "Казань": {lat:55.7961, lon:49.1064, tz:"Europe/Moscow"}
+};
+
+const S = [
+  ["Москва","Русское Радио","https://rusradio.hostingradio.ru/rusradio96.aacp","rusradio.ru"],
+  ["Москва","Комсомольская правда","https://kpradio.hostingradio.ru:8000/64","radiokp.ru"],
+  ["Москва","Радио Sputnik","https://icecast-rian.cdnvideo.ru/voicerus","radiosputnik.ru"],
+  ["Москва","DFM Дискач 90-х","https://dfm-disc90.hostingradio.ru/disc9096.aacp","dfm.ru"],
+  ["Москва","Звезда","https://icecast-zvezda.mediacdn.ru/radio/zvezda/zvezda_128","radiozvezda.ru"],
+  ["Москва","Радио Шоколад","https://choco.hostingradio.ru:10010/fm","chocoradio.ru"],
+  ["Москва","HIT FM","https://hitfm.hostingradio.ru/hitfm96.aacp","hitfm.ru"],
+  ["Москва","Бизнес FM","https://bfm.hostingradio.ru:9075/fm","bfm.ru"],
+
+  ["Санкт-Петербург","Radio Record","https://radiorecord.hostingradio.ru/rr_main96.aacp","radiorecord.ru"],
+  ["Санкт-Петербург","Radio Record — Russian Mix","https://radiorecord.hostingradio.ru/rus96.aacp","radiorecord.ru"],
+  ["Санкт-Петербург","Радио Ваня","https://icecast-radiovanya.cdnvideo.ru/radiovanya","radiovanya.ru"],
+
+  ["Казань","Татар Радиосы","https://tatarradio.hostingradio.ru/tatarradio320.mp3","tatarradio.ru"]
+].map((x,i)=>({id:"s"+i,city:x[0],name:x[1],url:x[2],domain:x[3]}));
+
+const a = document.getElementById("audio");
+const list = document.getElementById("list");
+const player = document.getElementById("player");
+const pn = document.getElementById("pn");
+const pc = document.getElementById("pc");
+const toggle = document.getElementById("toggle");
+const notice = document.getElementById("notice");
+const retry = document.getElementById("retry");
+
+let current = null;
+let playTimer = null;
+let bad = new Set();
+const fav = new Set(JSON.parse(localStorage.getItem("fav") || "[]"));
+const W = {};
+
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const logo = s => "https://www.google.com/s2/favicons?sz=128&domain=" + encodeURIComponent(s.domain);
+const tm = city => new Intl.DateTimeFormat("ru-RU",{timeZone:cities[city].tz,hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());
+
+function wi(c){
+  if(c===0)return"☀️";
+  if([1,2].includes(c))return"🌤️";
+  if(c===3)return"☁️";
+  if([45,48].includes(c))return"🌫️";
+  if((c>=51&&c<=67)||(c>=80&&c<=82))return"🌧️";
+  if((c>=71&&c<=77)||(c>=85&&c<=86))return"🌨️";
+  if(c>=95)return"⛈️";
+  return"☁️";
+}
+function wt(city){
+  const w=W[city];
+  return !w ? "Погода загружается…" : wi(w.code)+" "+Math.round(w.now)+"° · "+Math.round(w.min)+"…"+Math.round(w.max)+"°";
+}
+
+function showNotice(msg){
+  notice.textContent = msg;
+  notice.style.display = "block";
+  retry.style.display = bad.size ? "block" : "none";
+}
+function markBad(s){
+  bad.add(s.id);
+  if(current?.id===s.id){
+    a.pause(); a.removeAttribute("src"); a.load();
+    current=null; player.style.display="none";
+  }
+  showNotice("Станция «"+s.name+"» сейчас не отвечает и скрыта из списка.");
+  render();
+}
+
+function render(){
+  const q=document.getElementById("q").value.toLowerCase().trim();
+  list.innerHTML="";
+  const f=S.filter(s=>!bad.has(s.id) && (!q || s.name.toLowerCase().includes(q) || s.city.toLowerCase().includes(q)));
+  const cityNames=[...new Set(f.map(s=>s.city))].sort((a,b)=>a.localeCompare(b,"ru"));
+  cityNames.forEach(city=>{
+    const sec=document.createElement("section");
+    sec.className="city";
+    sec.innerHTML='<div class="ct"><div class="cn">'+esc(city)+'</div><div class="cr"><div class="time" data-t="'+esc(city)+'">'+tm(city)+'</div><div class="weather" data-w="'+esc(city)+'">'+wt(city)+'</div></div></div>';
+    const ss=f.filter(s=>s.city===city).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
+    ss.forEach((s,idx)=>{
+      const r=document.createElement("div");
+      let cls="row";
+      if(ss.length===1)cls+=" only";
+      else if(idx===0)cls+=" first";
+      else if(idx===ss.length-1)cls+=" last";
+      if(current?.id===s.id)cls+=" active";
+      r.className=cls;
+      r.innerHTML =
+        '<div class="logo"><img src="'+logo(s)+'" alt="" onerror="this.remove();this.parentElement.innerHTML=\\'<span class=fallback>FM</span>\\'"></div>'+
+        '<button class="play">'+(current?.id===s.id&&!a.paused?"❚❚":"▶")+'</button>'+
+        '<div class="meta"><div class="name">'+esc(s.name)+'</div><div class="sub">'+esc(s.city)+'</div><div class="ok">● HTTPS поток</div></div>'+
+        '<button class="fav '+(fav.has(s.id)?"on":"")+'">'+(fav.has(s.id)?"★":"☆")+'</button>';
+      r.querySelector(".play").onclick=()=>play(s);
+      r.querySelector(".fav").onclick=()=>{
+        fav.has(s.id)?fav.delete(s.id):fav.add(s.id);
+        localStorage.setItem("fav",JSON.stringify([...fav]));
+        render();
+      };
+      sec.appendChild(r);
+    });
+    list.appendChild(sec);
+  });
+}
+
+function heads(){
+  document.querySelectorAll("[data-t]").forEach(e=>e.textContent=tm(e.dataset.t));
+  document.querySelectorAll("[data-w]").forEach(e=>e.textContent=wt(e.dataset.w));
+}
+
+async function weather(city){
+  const c=cities[city];
+  const p=new URLSearchParams({
+    latitude:c.lat,longitude:c.lon,
+    current:"temperature_2m,weather_code",
+    daily:"temperature_2m_max,temperature_2m_min",
+    timezone:c.tz,forecast_days:"1"
+  });
+  try{
+    const j=await fetch("https://api.open-meteo.com/v1/forecast?"+p).then(r=>r.json());
+    W[city]={now:j.current.temperature_2m,code:j.current.weather_code,min:j.daily.temperature_2m_min[0],max:j.daily.temperature_2m_max[0]};
+    heads();
+  }catch{}
+}
+
+function play(s){
+  if(current?.id===s.id){
+    if(a.paused) a.play().catch(()=>markBad(s)); else a.pause();
+    return;
+  }
+  clearTimeout(playTimer);
+  current=s;
+  a.src=s.url;
+  player.style.display="flex";
+  pn.textContent=s.name;
+  pc.textContent=s.city+" · подключение…";
+  render();
+
+  playTimer=setTimeout(()=>{
+    if(current?.id===s.id && a.readyState<2) markBad(s);
+  },9000);
+
+  a.play().catch(()=>markBad(s));
+}
+
+a.onplaying=()=>{
+  clearTimeout(playTimer);
+  toggle.textContent="❚❚";
+  if(current) pc.textContent=current.city+" · играет";
+  render();
+};
+a.onpause=()=>{toggle.textContent="▶";render()};
+a.onerror=()=>{ if(current) markBad(current); };
+a.onstalled=()=>{ if(current) pc.textContent=current.city+" · буферизация…"; };
+
+toggle.onclick=()=>a.paused?a.play().catch(()=>current&&markBad(current)):a.pause();
+document.getElementById("stop").onclick=()=>{
+  clearTimeout(playTimer);
+  a.pause();a.removeAttribute("src");a.load();current=null;
+  player.style.display="none";render();
+};
+document.getElementById("q").oninput=render;
+
+retry.onclick=()=>{
+  bad.clear();
+  notice.style.display="none";
+  retry.style.display="none";
+  render();
+};
+
+render();
+Object.keys(cities).forEach(weather);
+setInterval(heads,30000);
+setInterval(()=>Object.keys(cities).forEach(weather),900000);
+</script>
+</body></html>
